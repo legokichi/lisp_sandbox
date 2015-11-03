@@ -1,0 +1,128 @@
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<title>lisp</title>
+<link rel="stylesheet" href="./normalize.css" />
+<script src="./jquery-1.7.2.min.js"></script>
+<script src="./coffee-script.js"></script>
+<script type="text/coffeescript">
+
+lisp = do ->
+
+ see = (x)->
+  if      (! isArray x ) and (! isFunction x) then x
+  else if (! isArray x ) and x.exp?           then see x.exp
+  else if (! isArray x )                      then "(lambda ...)"
+  else                                             "(#{(see i for i in x).join(" ")})"
+
+ log = do ->
+  space = 1
+  (str,i=0)->
+   if      i>0 then $("#log").append Array(  space++).join(" ") + str + "\n"
+   else if i<0 then $("#log").append Array(--space  ).join(" ") + str + "\n"
+   else             $("#log").append Array(  space  ).join(" ") + str + "\n"
+
+ global = [{
+  car:         (envs,[args...])-> if ! isArray args[0] then args[0][0]                  else throw args[0] + " is not list..."
+  cdr:         (envs,[args...])-> if ! isArray args[0] then args[0].slice 1             else throw args[0] + " is not list..."
+  cons:        (envs,[args...])-> if ! isArray args[1] then [].concat [args[0]],args[1] else throw args[1] + " is not list..."
+  if:          (envs,[args...])-> if           args[0] then args[1]                     else       args[2]
+  eval:        (envs,[args...])-> _eval        envs,args[0]
+  define:      (envs,[args...])-> _define      envs,args[0],args[1]
+  macroexpand: (envs,[args...])-> _macroexpand envs,args[0]
+  eq:          (envs,[args...])-> args.every  (val  )-> val is args[0]
+  "+":         (envs,[args...])-> args.reduce (sum,x)-> sum + x
+  "-":         (envs,[args...])-> args.reduce (sum,x)-> sum - x
+  "*":         (envs,[args...])-> args.reduce (sum,x)-> sum * x
+  "/":         (envs,[args...])-> args.reduce (sum,x)-> sum / x
+  list:        (envs,[args...])-> [].concat args
+  atom:        (envs,[args...])-> ! isArray args[0]
+ }]
+
+ _eval = (envs,x)->
+  log "eval(#{see x})",1
+  val= if isArray(x) and x[0] is "quote"    then x[1]
+  else if isArray(x) and x[0] is "defmacro" then _defmacro x.slice 1
+  else if isArray(x) and x[0] is "lambda"
+                                                  fn = (envs=envs,[args...])-> _eval (_stack envs,x[1],args),x[2]
+                                                  fn.exp = x
+                                                  fn
+  else if isArray(x) and isMacro x[0]       then _eval  envs,_macroexpand envs,x
+  else if isArray(x)                        then _apply envs,x[0],x.slice 1
+  else if isLiteral(x)                      then x
+  else if isSymbol(x)                       then _find  envs,x
+  else                                           throw x + " is unkown expression..."
+  log "=#{see val}",-1
+  val
+
+ _apply = (envs,symbol,args)->
+  log "apply(#{see symbol},#{see args})",1
+  fn   = if isFunction symbol then symbol       else _eval envs,symbol
+  args = (_eval envs,exp for exp in args)
+  val  = if isFunction fn     then fn envs,args else throw fn + " is not function..."
+  log "apply(#{see fn},#{see args})=#{see val}",-1
+  val
+
+ isSymbol  = (x)-> /^[^0-9].*?$/.test x
+ isLiteral = (x)-> (/^-?[0-9]+?(?:\.?[0-9]+?)?$/.test x) or (/^\".*?\"$/.test x) or (/^(?:true)|(?:false)$/.test x)
+
+ _find = (envs,symbol)->
+  env     = envs[envs.length-1]
+  nxtEnvs = envs.slice 0,envs.length-1
+  if      envs.length is 0 then throw symbol + " is not defined..."
+  else if env[symbol]?     then env[symbol]
+  else                          _find nxtEnvs, symbol
+
+ _define = (envs,symbol,val)->
+  env = envs[envs.length-1]
+  if   env[symbol]? then throw symbol + " is allready defined..."
+  else                   env[symbol] = val
+
+ _stack = (envs,vars,args)->
+  newenvs = envs.slice 0
+  env = {}
+  vars.map (symbol,i)-> env[symbol] = args[i]
+  newenvs.push env
+  newenvs
+
+ macros = {}
+
+ isMacro = (name)-> macros[name]?
+
+ _defmacro = (exp)->
+  [name,vars,body] = exp
+  macros[name]     = [vars,body]
+  null
+
+ _macroexpand = (envs,exp)->
+  log "macroexpand(#{see exp})",1
+  [name,args...] = exp
+  if macros[name]?
+   [vars,body] = macros[name]
+   newenvs     = _stack envs,vars,args
+   newexp      = _eval  newenvs,body
+   log "macroexpand(#{see exp})=#{see newexp}",-1
+   newexp
+  else
+   log "macroexpand(#{see exp})=#{see exp}",-1
+   exp
+
+ isArray    = (x)-> Object.prototype.toString.call(x) is "[object Array]"
+ isFunction = (x)-> Object.prototype.toString.call(x) is "[object Function]"
+ window.macros = macros
+ (exp)-> _eval global,exp
+
+$ ->
+ lisp	["define",["quote","square"],["lambda",["x"],["*","x","x"]]]
+ lisp	["square",10]
+ lisp	["defmacro","defq",["symbol","value"],
+ 			["list",["quote","define"],[["quote","quote"],"symbol"],"value"]]
+ lisp	["macroexpand",["quote",["defq","ten",10]]]
+ $("body").append Object.keys(macros).join "jth"
+</script>
+</head>
+<body>
+<pre id="log"></pre>
+</body>
+</html>

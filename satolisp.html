@@ -1,0 +1,27 @@
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<title>satolisp</title>
+<!--base href="http://files.dropbox.com/u/265158/" /-->
+<link rel="stylesheet" href="./normalize.css" />
+<script src="./coffee-script.js"></script>
+<script type="text/coffeescript">
+satolisp =
+	parse
+	run:(script)->
+		@eval @parse script
+		
+window.onload = ->
+	nodes = document.getElementsByTagName "script"
+	for node in nodes
+		if node.type is "text/satolisp"
+			satolisp.run node.innerHTML
+</script>
+<script type="text/satolisp">
+hoge
+</script>
+</head>
+<body>
+</body>
+</html>

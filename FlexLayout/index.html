@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ja" manifest="./cache.manifest">
+<head>
+  <meta charset="utf-8">
+  <title>Flex</title>
+  <meta name="viewport" content="width=320, initial-scale=1">
+  <!--<link rel="stylesheet" href="http://necolas.github.com/normalize.css/2.0.1/normalize.css" />-->
+  <!--<link rel="stylesheet" href="http://code.jquery.com/mobile/1.2.0/jquery.mobile-1.2.0.min.css" />-->
+  <!--<link rel="stylesheet" href="http://fonts.googleapis.com/css?family=PT+Sans" />-->
+  <script src="http://code.jquery.com/jquery-1.8.3.min.js"></script>
+  <!--<script src="http://code.jquery.com/mobile/1.2.0/jquery.mobile-1.2.0.min.js"></script>-->
+  <script src="http://underscorejs.org/underscore-min.js"></script>
+  <script src="json2.js"></script>
+  <!--<script src="https://raw.github.com/douglascrockford/JSON-js/master/json2.js"></script>-->
+  <script src="http://backbonejs.org/backbone-min.js"></script>
+  <!--<script src="https://raw.github.com/cubiq/iscroll/master/src/iscroll.js"></script>-->
+  <script type="text/template" id="column-template">
+    <div class="content">
+      <button class="add">add right</button>
+    </div>
+    <div class="next"><%= nextEl %></div>
+  </script>
+  <script type="text/javascript">
+    var ColumnM, ColumnV;
+    ColumnM = Backbone.Model.extend({
+      defaults: {
+        width: "320px" } });
+    ColumnV = Backbone.View.extend({
+      tagName: "div",
+      className: "column",
+      initialize: function() {
+        this.render(); },
+      events: {
+        "click .add": "add" },
+      add: function() {
+        console.log("add");
+        this.nextV = new ColumnV({
+          model: new ColumnM } );
+        this.render(); },
+      render: function() {
+        if(typeof this.nextV !== "undefined"){
+          console.log(this.nextV.el)
+          $(this.el).html(
+            _.template(
+              $("#column-template").html() ) );
+          } } });
+    $(function() {
+        baseV = new window.ColumnV({
+          model: new window.ColumnM }); 
+        $("body").append(baseV.el);
+        baseV.add();
+        console.log("end."); });
+  </script>
+  <!--<script src="http://coffeescript.org/extras/coffee-script.js"></script>-->
+  <style type="text/less">
+    @device-width: 320px;
+    @device-height: 480px;
+    html {
+      * {
+        border: 1px solid red;
+      }
+      body {
+        position: relative;
+        padding: 0px;
+        height: 100%;
+      }
+    }
+  </style>
+  <script src="http://lesscss.googlecode.com/files/less-1.3.0.min.js"></script>
+</head>
+<body>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<title>lisp</title>
+<script src="mm.js"></script>
+<script src="jquery-1.8.2.min.js"></script>
+<script src="underscore.js"></script>
+<script type="text/coffeescript">
+
+init = ->
+  str = """
+    (((())))
+  """
+  console.dir parser tokenize str
+
+tokenize = (rawCode)->
+  rawLines = rawCode.crlf()
+  trimdLines = rawLines.map (rawLine, i)-> rawLine.trim()
+  trimdCode = trimdLines.join(" ").split("(").join("( ").split(")").join(" )")
+  tokens = trimdCode.split " "
+  tokens
+
+parser = (tokens)->
+  class Atom
+    constructor: (@value)->
+  class Nil extends Atom
+    constructor: -> @value = null
+  class T extends Atom
+    constructor: -> @value = true
+  class Symbol extends Atom
+  class Charset extends Atom
+  class Numerals extends Atom
+  class Cons
+    constructor: (@car, @cdr)->
+  psrAtom = (val)->
+    if typeof val is "string"
+      if      val is "T"          then new T
+      else if isFinite Number val then new Numerals Number val
+      else if /\'\s\'/.exec(val)  then new Charset val
+      else                             new Symbol val
+    else if val is null then new Nil
+    else throw "#{val} of #{mm.type(val)} is unexpected!"
+
+  psr = ->
+    token = tokens.shift()
+    if !token? then return psrAtom(null)
+    if token is "("
+      token = tokens.shift()
+      new Cons(new Cons(psrAtom(token), psr()), psr())
+    else if token is ")"
+      psrAtom(null)
+    else
+      new Cons(psrAtom(token), psr())
+  psr().car
+
+init()
+</script>
+<script src="coffee-script.js"></script>
+</head>
+<body>
+</body>
+</html>

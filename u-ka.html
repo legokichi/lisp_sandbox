@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0" />
+<title>u-ka</title>
+<link rel="stylesheet" href="./normalize.css" />
+<link rel="stylesheet" href="./qunit.css" />
+<script type="text/satolisp">
+</script>
+<script type="text/jade">
+img#shell
+</script>
+<style type="text/less">
+#shell{
+	display: inline-block;
+	position: absolute;
+	right: 0px;
+	bottom: 0px;
+	border: 1px solid black;
+}
+</style>
+<script type="text/coffeescript">
+ikagaka = do ->
+	isFunction  =      (fn)-> Object.prototype.toString.apply(fn)  is "[object Function]"
+	isArray     =     (ary)-> Object.prototype.toString.apply(ary) is "[object Array]"
+	isObject    =     (obj)-> Object.prototype.toString.apply(obj) is "[object Object]"
+	isImage     =     (img)-> Object.prototype.toString.apply(img) is "[object HTMLImageElement]"
+	isCanvas    =     (cnv)-> Object.prototype.toString.apply(cnv) is "[object HTMLCanvasElement]"
+	typeIs      = (unknown)-> Object.prototype.toString.apply(unknown)
+	isUndefined =    (undf)-> typeof undf is "undefined"
+	isNumber    =     (num)-> isFinite Number num
+	test "isNumber",->
+		ok isNumber 0
+		ok isNumber -1
+		ok isNumber 1.0
+		ok isNumber "1.0"
+	
+	loadImg = (url,callback=(img)->)->
+		img = new Image
+		img.src = url
+		img.onload = img.onerror = -> callback img
+		return
+	asyncTest "loadImg",->
+		loadImg "./bus.jpg",(img)->
+			start()
+			ok img.width > 0
+	
+	copy = (cnv)->
+		child = document.createElement "canvas"
+		child.width  = cnv.width
+		child.height = cnv.height
+		ctx = child.getContext "2d"
+		try ctx.drawImage cnv,0,0
+		child
+	
+	transImg = (img,callback=(cnv)->)->
+		cnv = copy img
+		ctx = cnv.getContext "2d"
+		try
+			imgdata = ctx.getImageData 0,0,img.width,img.height
+			if imgdata.data[3] is 0
+				ctx.putImageData imgdata,0,0
+				setTimeout -> callback cnv
+			else
+				i = 0
+				[r,g,b] = [imgdata.data[0],imgdata.data[1],imgdata.data[2]]
+				while i < imgdata.data.length
+					if r is imgdata.data[i] and g is imgdata.data[i+1] and b is imgdata.data[i+2]
+						imgdata.data[i+3] = 0
+					i += 4
+				ctx.putImageData imgdata,0,0
+				setTimeout -> callback cnv
+		catch e
+			setTimeout -> callback cnv
+		return
+	
+	loadImgsToCnvs = do ->
+		canvasCache = {}
+		(urlAry,callback=(cnvAry)->)->
+			i = urlAry.length
+			urlAry.forEach (url)->
+				if canvasCache[url]?
+					setTimeout -> next url
+				else
+					loadImg url,(img)->
+						transImg img,(cnv)->
+							canvasCache[url] = cnv
+							setTimeout -> next url
+			next = (url)->
+				if --i is 0
+					callback urlAry.map (url)-> copy canvasCache[url]
+			return
+</script>
+<script src="./qunit.js"></script>
+<script src="./jquery-1.7.2.min.js"></script>
+<script src="./underscore.js"></script>
+<script src="./mm.min.js"></script>
+<script src="./jade+.js"></script>
+<script src="./less-1.3.0.min.js"></script>
+<script src="./prefixfree.min.js"></script>
+<script src="./coffee-script.js"></script>
+</head>
+<body>
+<div id="qunit"></div>
+</body>
+</html>
